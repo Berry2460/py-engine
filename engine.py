@@ -3,10 +3,24 @@ import OpenGL.GL as gl
 import PIL.Image
 import time
 
+##### TIMER #####
+
+class Timer:
+    def __init__(self):
+        self.timer=0
+
+    def timerStart(self):
+        self.timer=time.time()
+
+    def timerCheck(self, t):
+        return (time.time()-self.timer >= t)
+
 ##### ENVIRONMENT #####
 
 class Environment:
     def __init__(self, window, floor, x=128, y=128, tilex=64, tiley=64, subdiv=4):
+        while tilex%subdiv != 0 or tiley%subdiv != 0:
+            subdiv+=1 #subdiv must divide evenly into tile size to prevent collision errors
         self.subdiv=subdiv
         self.x=x
         self.y=y
@@ -104,8 +118,8 @@ class Texture:
             data=img.load()
             pixels=[0]*self.imgX*self.imgY*4
             index=0
-            for i in range(self.imgY):
-                for j in range(self.imgX):
+            for i in range(self.imgX):
+                for j in range(self.imgY):
                     pixels[index]=data[i,j][0]
                     pixels[index+1]=data[i,j][1]
                     pixels[index+2]=data[i,j][2]
@@ -158,6 +172,18 @@ class Sprite:
         self.solid=solid
         self.visible=True
         self.setCollision(True)
+        self.flip=False
+
+    def tint(self, r, g, b):
+        self.color[0]=r
+        self.color[1]=g
+        self.color[2]=b
+
+    def flipTexture(self):
+        self.flip=True
+
+    def unflipTexture(self):
+        self.flip=False
 
     def remove(self):
         self.visible=False
@@ -169,6 +195,10 @@ class Sprite:
             minTextureY=self.ty/self.texture.ymax
             maxTextureX=(self.tx+1)/self.texture.xmax
             maxTextureY=(self.ty+1)/self.texture.ymax
+            if self.flip:
+                temp=minTextureX
+                minTextureX=maxTextureX
+                maxTextureX=temp
             gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture.getTexture())
             gl.glBegin(gl.GL_QUADS)
             gl.glColor3f(self.color[0], self.color[1], self.color[2])
@@ -198,6 +228,23 @@ class Sprite:
         return hit
 
     def setCollision(self, value):
+        off=0
+        if self.half:
+            off=int(self.ylen/2)
+        y=int((self.y-off)/self.env.ctiley)
+        x=int(self.x/self.env.ctilex)
+        y2=int((self.y-self.ylen)/self.env.ctiley)
+        x2=int((self.x+self.xlen)/self.env.ctilex)
+        for i in range(max(0, y2), min(y+1, self.env.cy)):
+            for j in range(max(0, x), min(x2+1, self.env.cx)):
+                if self.solid:
+                    self.env.collision[i][j][0]=value
+                if value and self.env.collision[i][j][1] == False:
+                    self.env.collision[i][j][1]=self
+                elif not value and self.env.collision[i][j][1] == self:
+                    self.env.collision[i][j][1]=False
+
+    def getCollision(self):
         if self.solid:
             off=0
             if self.half:
@@ -208,21 +255,8 @@ class Sprite:
             x2=int((self.x+self.xlen)/self.env.ctilex)
             for i in range(max(0, y2), min(y+1, self.env.cy)):
                 for j in range(max(0, x), min(x2+1, self.env.cx)):
-                    self.env.collision[i][j][0]=value
-                    self.env.collision[i][j][1]=self
-
-    def getCollision(self):
-        off=0
-        if self.half:
-            off=int(self.ylen/2)
-        y=int((self.y-off)/self.env.ctiley)
-        x=int(self.x/self.env.ctilex)
-        y2=int((self.y-self.ylen)/self.env.ctiley)
-        x2=int((self.x+self.xlen)/self.env.ctilex)
-        for i in range(max(0, y2), min(y+1, self.env.cy)):
-            for j in range(max(0, x), min(x2+1, self.env.cx)):
-                if self.env.collision[i][j][0]:
-                    return self.env.collision[i][j][1]
+                    if self.env.collision[i][j][0]:
+                        return self.env.collision[i][j][1]
         return False
 
     def setTextureCoordX(self, x=0):
@@ -261,9 +295,8 @@ class Window:
         self.keys=[False]*512 #keys
         self.mclick=[False]*3 #mouse buttons
         self.fps=0
-        self.frames=0
+        self.frames=60 #start above 0 to prevent miscalculations due to inaccuracy
         self.start=time.time()
-        self.timer=0
         self.winx=x
         self.winy=y
         self.scroll=0
@@ -273,12 +306,6 @@ class Window:
         gl.glEnable(gl.GL_TEXTURE_2D)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-
-    def timerStart(self):
-        self.timer=time.time()
-
-    def timerCheck(self, t):
-        return (time.time()-self.timer >= t)
 
     def windowLoop(self):
         self.scroll=0
