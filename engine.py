@@ -118,8 +118,8 @@ class Texture:
             data=img.load()
             pixels=[0]*self.imgX*self.imgY*4
             index=0
-            for i in range(self.imgX):
-                for j in range(self.imgY):
+            for i in range(self.imgY):
+                for j in range(self.imgX):
                     pixels[index]=data[i,j][0]
                     pixels[index+1]=data[i,j][1]
                     pixels[index+2]=data[i,j][2]
