@@ -3,7 +3,7 @@ import engine
 def main():
     x=1280
     y=720
-    win=engine.Window(x, y, 'engine', vsync=0, fullscreen=False)
+    win=engine.Window(x, y, 'engine', vsync=1, fullscreen=True)
     #load textures
     t1=engine.Texture('textures/dragon.png',4,4)
     t2=engine.Texture('textures/grass.png',1,1)
@@ -49,12 +49,15 @@ def main():
             elif win.winy/2-(player.ylen/10) > win.getMousePos()[1]:
                 player.setTextureCoordX(2)
                 collide=player.move(0, -200)
-            if win.winx/2+(player.xlen/10) < win.getMousePos()[0]:
+            if win.winx/2+(player.xlen/2) < win.getMousePos()[0]:
                 player.setTextureCoordX(1)
                 collide=player.move(200, 0)
-            elif win.winx/2-(player.xlen/10) > win.getMousePos()[0]:
+            elif win.winx/2-(player.xlen/2) > win.getMousePos()[0]:
                 player.setTextureCoordX(3)
                 collide=player.move(-200, 0)
+            if collide:
+                #collision stuff here
+                pass
         cam.center(player)
 
 if __name__ == '__main__':
