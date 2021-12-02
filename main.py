@@ -25,7 +25,7 @@ def walk(walk, sprite):
     #walk animation
     if walk.timerCheck(0.3):
         walk.timerStart()
-        sprite.enumTextureCoordY(1, 0, 3)
+        sprite.enumTextureCoordY(1, 0, 4)
 
 def die(walk, sprite):
     if walk.timerCheck(0.16):
