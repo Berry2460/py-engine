@@ -1,5 +1,75 @@
 import engine
 
+
+def moveAI(ai, player, goRight):
+    #enemy moving
+    c=False
+    if goRight[0]:
+        ai.unflipTexture()
+        c=ai.move(100, 0)
+    else:
+        ai.flipTexture()
+        c=ai.move(-100, 0)
+    if c == player:
+        return False
+    elif c:
+        goRight[0]=not goRight[0]
+    return True
+
+def walk(walk, sprite):
+    #walk animation
+    if walk.timerCheck(0.3):
+        walk.timerStart()
+        sprite.enumTextureCoordY(1, 0, 3)
+
+def die(walk, sprite):
+    if walk.timerCheck(0.15):
+        walk.timerStart()
+        sprite.setTextureCoordY(5)
+        sprite.enumTextureCoordX(1, 0, 4)
+        return True
+    return False
+
+def controls(win, player):
+    #follow mouse
+    if win.leftMouseButton():
+        #movement
+        collide=False
+        up=0 #directions
+        if win.winy/2+(player.ylen/2) < win.getMousePos()[1]:
+            up=1
+            player.unflipTexture()
+            player.setTextureCoordX(0)
+            collide=player.move(0, 180)
+        elif win.winy/2-(player.ylen/2) > win.getMousePos()[1]:
+            up=-1
+            player.unflipTexture()
+            player.setTextureCoordX(4)
+            collide=player.move(0, -180)
+        if win.winx/2+(player.xlen/2) < win.getMousePos()[0]:
+            player.unflipTexture()
+            if up == 0:
+                player.setTextureCoordX(2)
+            elif up == 1:
+                player.setTextureCoordX(1)
+            elif up == -1:
+                player.setTextureCoordX(3)
+            collide=player.move(180, 0)
+        elif win.winx/2-(player.xlen/2) > win.getMousePos()[0]:
+            player.flipTexture()
+            if up == 0:
+                player.setTextureCoordX(2)
+            elif up == 1:
+                player.setTextureCoordX(1)
+            elif up == -1:
+                player.setTextureCoordX(3)
+            collide=player.move(-180, 0)
+        if collide:
+            #collision stuff here
+            pass
+    elif win.rightMouseButton():
+        player.setTextureCoordY(4)
+
 def main():
     x=1280
     y=720
@@ -21,9 +91,12 @@ def main():
     player=engine.Sprite(win, env, t1, 10, 12, 96, 64, solid=True, half=True)
     enemy=engine.Sprite(win, env, t1, 1, 9, 64, 48, solid=True, half=True)
     enemy.setTextureCoordX(2)
-    enemyRight=True #enemy move right
+    enemyRight=[True] #enemy move right
+    deathFrames=4
+    enemyAlive=True
     enemy.tint(0.0, 1.0, 1.0) #remove red colors from enemy
     pwalk=engine.Timer() #walk animation timer
+    ewalk=engine.Timer() #enemy walk animation timer
     #game loop
     while win.windowLoop():
         #rendering
@@ -41,58 +114,24 @@ def main():
         if win.isPressed(ord('A')):
             win.close()
             return
-        #walk animation
-        if pwalk.timerCheck(0.3):
-            pwalk.timerStart()
-            player.enumTextureCoordY(1, 0, 3)
-            #enemy animation
-            enemy.enumTextureCoordY(1, 0, 3)
-        #enemy moving
-        c=False
-        if enemyRight:
-            enemy.unflipTexture()
-            c=enemy.move(100, 0)
-        else:
-            enemy.flipTexture()
-            c=enemy.move(-100, 0)
-        if c:
-            enemyRight=not enemyRight
-        #follow mouse
-        if win.leftMouseButton():
-            #movement
-            collide=False
-            up=0 #directions
-            if win.winy/2+(player.ylen/2) < win.getMousePos()[1]:
-                up=1
-                player.unflipTexture()
-                player.setTextureCoordX(0)
-                collide=player.move(0, 180)
-            elif win.winy/2-(player.ylen/2) > win.getMousePos()[1]:
-                up=-1
-                player.unflipTexture()
-                player.setTextureCoordX(4)
-                collide=player.move(0, -180)
-            if win.winx/2+(player.xlen/2) < win.getMousePos()[0]:
-                player.unflipTexture()
-                if up == 0:
-                    player.setTextureCoordX(2)
-                elif up == 1:
-                    player.setTextureCoordX(1)
-                elif up == -1:
-                    player.setTextureCoordX(3)
-                collide=player.move(180, 0)
-            elif win.winx/2-(player.xlen/2) > win.getMousePos()[0]:
-                player.flipTexture()
-                if up == 0:
-                    player.setTextureCoordX(2)
-                elif up == 1:
-                    player.setTextureCoordX(1)
-                elif up == -1:
-                    player.setTextureCoordX(3)
-                collide=player.move(-180, 0)
-            if collide:
-                #collision stuff here
-                pass
+        #animations
+        walk(pwalk, player)
+        #enemy death check
+        if enemyAlive:
+            walk(ewalk, enemy)
+            enemyAlive=moveAI(enemy, player, enemyRight)
+            if not enemyAlive:
+                ewalk.timerStart()
+                enemy.setTextureCoordX(0)
+                enemy.setTextureCoordY(5)
+        if not enemyAlive and deathFrames > 0:
+            if die(ewalk, enemy):
+                deathFrames-=1
+        elif not enemyAlive:
+            enemy.remove()
+        #do controls
+        controls(win, player)
+        #center camera on player
         cam.center(player)
 
 if __name__ == '__main__':
