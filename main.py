@@ -28,11 +28,11 @@ def walk(walk, sprite):
         sprite.enumTextureCoordY(1, 0, 3)
 
 def die(walk, sprite):
-    if walk.timerCheck(0.18):
+    if walk.timerCheck(0.16):
         walk.timerStart()
         sprite.unflipTexture()
         sprite.setTextureCoordY(5)
-        if sprite.enumOnceTextureCoordX(1, 0, 4):
+        if sprite.enumOnceTextureCoordX(1, 0, 5):
             sprite.remove()
 
 def controls(win, player):
