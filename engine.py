@@ -118,8 +118,8 @@ class Texture:
             data=img.load()
             pixels=[0]*self.imgX*self.imgY*4
             index=0
-            for i in range(self.imgY):
-                for j in range(self.imgX):
+            for i in range(self.imgX):
+                for j in range(self.imgY):
                     pixels[index]=data[i,j][0]
                     pixels[index+1]=data[i,j][1]
                     pixels[index+2]=data[i,j][2]
@@ -136,6 +136,12 @@ class Texture:
 
     def getTexture(self):
         return self.data
+
+    def getSizeX(self):
+        return self.imgX
+
+    def getSizeY(self):
+        return self.imgY
 
 ##### CAMERA #####
 
@@ -215,15 +221,16 @@ class Sprite:
     def move(self, x, y):
         oldx=self.x
         oldy=self.y
-        if self.solid:
-            self.setCollision(False)
+        self.setCollision(False)
         self.x+=x/self.window.getFps()
         self.y+=y/self.window.getFps()
         hit=self.getCollision()
         #collision detection
-        if hit or self.x < self.env.tilex or self.y < self.env.tiley or self.x > self.env.x*self.env.tilex or self.y > self.env.y*self.env.tiley:
+        if hit or self.x < 0 or self.y < self.ylen/2 or self.x > self.env.x*self.env.tilex-self.xlen/2 or self.y > self.env.y*self.env.tiley:
             self.x=oldx
             self.y=oldy
+            if not hit:
+                hit=True
         self.setCollision(True)
         return hit
 
@@ -239,7 +246,7 @@ class Sprite:
             for j in range(max(0, x), min(x2+1, self.env.cx)):
                 if self.solid:
                     self.env.collision[i][j][0]=value
-                if value and self.env.collision[i][j][1] == False:
+                if value and (self.env.collision[i][j][1] == False or self.env.collision[i][j][1] == self):
                     self.env.collision[i][j][1]=self
                 elif not value and self.env.collision[i][j][1] == self:
                     self.env.collision[i][j][1]=False
@@ -261,11 +268,15 @@ class Sprite:
 
     def setTextureCoordX(self, x=0):
         self.tx=x
+
     def setTextureCoordY(self, y=0):
         self.ty=y
-    def enumTextureCoords(self, x=0, y=0):
-        self.tx=(self.tx+x)%self.texture.xmax
-        self.ty=(self.ty+y)%self.texture.ymax
+
+    def enumTextureCoordX(self, x=0, wrapMin=0, wrapMax=0):
+        self.tx=(self.tx+x)%min(wrapMax, self.texture.xmax)+wrapMin
+
+    def enumTextureCoordY(self, y=0, wrapMin=0, wrapMax=0):
+        self.ty=(self.ty+y)%min(wrapMax, self.texture.ymax)+wrapMin
 
 ##### WINDOW #####
 
