@@ -195,6 +195,9 @@ class Sprite:
         self.visible=False
         self.setCollision(False)
 
+    def isVisible(self):
+        return self.visible
+
     def render(self, camera):
         if self.visible:
             minTextureX=self.tx/self.texture.xmax
@@ -277,6 +280,24 @@ class Sprite:
 
     def enumTextureCoordY(self, y=0, wrapMin=0, wrapMax=0):
         self.ty=(self.ty+y)%min(wrapMax, self.texture.ymax)+wrapMin
+
+    def enumOnceTextureCoordX(self, x=0, wrapMin=0, wrapMax=0):
+        step=self.tx+x
+        mod=min(wrapMax, self.texture.xmax)
+        out=False
+        if step >= mod:
+            out=True
+        self.tx=step%mod+wrapMin
+        return out
+
+    def enumOnceTextureCoordY(self, y=0, wrapMin=0, wrapMax=0):
+        step=self.ty+y
+        mod=min(wrapMax, self.texture.ymax)
+        out=False
+        if step >= mod:
+            out=True
+        self.ty=step%mod+wrapMin
+        return out
 
 ##### WINDOW #####
 

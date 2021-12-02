@@ -25,10 +25,10 @@ def walk(walk, sprite):
 def die(walk, sprite):
     if walk.timerCheck(0.15):
         walk.timerStart()
+        sprite.unflipTexture()
         sprite.setTextureCoordY(5)
-        sprite.enumTextureCoordX(1, 0, 4)
-        return True
-    return False
+        if sprite.enumOnceTextureCoordX(1, 0, 4):
+            sprite.remove()
 
 def controls(win, player):
     #follow mouse
@@ -92,7 +92,6 @@ def main():
     enemy=engine.Sprite(win, env, t1, 1, 9, 64, 48, solid=True, half=True)
     enemy.setTextureCoordX(2)
     enemyRight=[True] #enemy move right
-    deathFrames=4
     enemyAlive=True
     enemy.tint(0.0, 1.0, 1.0) #remove red colors from enemy
     pwalk=engine.Timer() #walk animation timer
@@ -120,15 +119,14 @@ def main():
         if enemyAlive:
             walk(ewalk, enemy)
             enemyAlive=moveAI(enemy, player, enemyRight)
+            #if died this frame
             if not enemyAlive:
                 ewalk.timerStart()
+                enemy.unflipTexture()
                 enemy.setTextureCoordX(0)
                 enemy.setTextureCoordY(5)
-        if not enemyAlive and deathFrames > 0:
-            if die(ewalk, enemy):
-                deathFrames-=1
-        elif not enemyAlive:
-            enemy.remove()
+        if not enemyAlive and enemy.isVisible():
+            die(ewalk, enemy)
         #do controls
         controls(win, player)
         #center camera on player
