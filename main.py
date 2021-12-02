@@ -1,5 +1,10 @@
 import engine
 
+def spawnEnemy(win, env, tex):
+    enemy=engine.Sprite(win, env, tex, 1, 9, 64, 48, solid=True, half=True)
+    enemy.setTextureCoordX(2)
+    enemy.tint(0.0, 1.0, 1.0)
+    return enemy
 
 def moveAI(ai, player, goRight):
     #enemy moving
@@ -23,7 +28,7 @@ def walk(walk, sprite):
         sprite.enumTextureCoordY(1, 0, 3)
 
 def die(walk, sprite):
-    if walk.timerCheck(0.15):
+    if walk.timerCheck(0.18):
         walk.timerStart()
         sprite.unflipTexture()
         sprite.setTextureCoordY(5)
@@ -71,9 +76,9 @@ def controls(win, player):
         player.setTextureCoordY(4)
 
 def main():
-    x=1280
-    y=720
-    win=engine.Window(x, y, 'engine', vsync=0, fullscreen=False)
+    x=1920
+    y=1080
+    win=engine.Window(x, y, 'engine', vsync=1, fullscreen=True)
     #load textures
     t1=engine.Texture('textures/dragon.png',5,6)
     t2=engine.Texture('textures/grass.png',1,1)
@@ -89,11 +94,9 @@ def main():
     env.place(9, 15, t3, True)
     #make sprites
     player=engine.Sprite(win, env, t1, 10, 12, 96, 64, solid=True, half=True)
-    enemy=engine.Sprite(win, env, t1, 1, 9, 64, 48, solid=True, half=True)
-    enemy.setTextureCoordX(2)
+    enemy=spawnEnemy(win, env, t1)
     enemyRight=[True] #enemy move right
     enemyAlive=True
-    enemy.tint(0.0, 1.0, 1.0) #remove red colors from enemy
     pwalk=engine.Timer() #walk animation timer
     ewalk=engine.Timer() #enemy walk animation timer
     #game loop
@@ -113,6 +116,12 @@ def main():
         if win.isPressed(ord('A')):
             win.close()
             return
+        #respawn enemy
+        elif win.isPressed(ord('B')):
+            if not enemyAlive and not enemy.isVisible():
+                enemy=spawnEnemy(win, env, t1)
+                enemyAlive=True
+                enemyRight=[True]
         #animations
         walk(pwalk, player)
         #enemy death check
