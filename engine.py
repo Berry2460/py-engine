@@ -82,11 +82,10 @@ class Environment:
                         if type(sprite) == Sprite and sprite not in sprites:
                             sprites.append(sprite)
                 #render tiles
-                div=max(self.tileset.xmax, self.tileset.ymax)
-                minTextureX=self.world[ty][tx][0]/div
-                minTextureY=self.world[ty][tx][1]/div
-                maxTextureX=(self.world[ty][tx][0]+1)/div
-                maxTextureY=(self.world[ty][tx][1]+1)/div
+                minTextureX=self.world[ty][tx][0]/self.tileset.xmax
+                minTextureY=self.world[ty][tx][1]/self.tileset.ymax
+                maxTextureX=(self.world[ty][tx][0]+1)/self.tileset.xmax
+                maxTextureY=(self.world[ty][tx][1]+1)/self.tileset.ymax
                 y=(i*self.tiley)-(camera.y%self.tiley)
                 x=(j*self.tilex)-(camera.x%self.tilex)
                 gl.glColor3f(1.0, 1.0, 1.0)

@@ -81,7 +81,7 @@ def main():
     win=engine.Window(x, y, 'engine', vsync=0, fullscreen=False)
     #load textures
     t1=engine.Texture('textures/dragon.png',5,6)
-    t2=engine.Texture('textures/tileset.png',2,1)
+    t2=engine.Texture('textures/tileset.png',2,2)
     t3=engine.Texture('textures/font.png',6,6)
     #set font
     win.setFont(t3)
