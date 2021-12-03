@@ -18,7 +18,7 @@ class Timer:
 ##### ENVIRONMENT #####
 
 class Environment:
-    def __init__(self, window, floor, x=128, y=128, tilex=64, tiley=64, subdiv=4):
+    def __init__(self, window, tileset, x=128, y=128, tilex=64, tiley=64, subdiv=4):
         while tilex%subdiv != 0 or tiley%subdiv != 0:
             subdiv+=1 #subdiv must divide evenly into tile size to prevent collision errors
         self.subdiv=subdiv
@@ -33,10 +33,11 @@ class Environment:
         self.world=[[]]
         self.collision=[[]]
         self.window=window
+        self.tileset=tileset
         #world init
         for i in range(self.y):
             for j in range(self.x):
-                self.world[i].append(floor) #texture
+                self.world[i].append([0,0]) #texture X,Y coords init
             self.world.append([])
         #collision init
         for i in range(self.cy):
@@ -44,8 +45,12 @@ class Environment:
                 self.collision[i].append([False, False]) #is occupied, sprite
             self.collision.append([])
 
-    def place(self, x, y, texture, solid=False):
-        self.world[y][x]=texture
+    def place(self, x, y, tilesetX, tilesetY, solid=False):
+        #make sure coordinates are in range
+        tilesetX=max(min(self.tileset.xmax-1, tilesetX), 0)
+        tilesetY=max(min(self.tileset.ymax-1, tilesetY), 0)
+        #place tile
+        self.world[y][x]=[tilesetX, tilesetY]
         cx=x*self.subdiv
         cy=(y-1)*self.subdiv
         cendx=(x+1)*self.subdiv
@@ -61,6 +66,9 @@ class Environment:
         xmax=int((self.window.winx/self.tilex)/camera.scale)+2
         ymin=-int((self.window.winy/self.tiley)/camera.scale)-1
         ymax=int((self.window.winy/self.tiley)/camera.scale)+3
+        #batch rendering tileset
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.tileset.getTexture())
+        gl.glBegin(gl.GL_QUADS)
         for i in reversed(range(ymin, ymax)):
             for j in range(xmin, xmax):
                 ty=min(self.y-1, max(0, i+int(camera.y/self.tiley)))
@@ -74,20 +82,23 @@ class Environment:
                         if type(sprite) == Sprite and sprite not in sprites:
                             sprites.append(sprite)
                 #render tiles
-                gl.glBindTexture(gl.GL_TEXTURE_2D, self.world[ty][tx].getTexture())
-                gl.glBegin(gl.GL_QUADS)
+                div=max(self.tileset.xmax, self.tileset.ymax)
+                minTextureX=self.world[ty][tx][0]/div
+                minTextureY=self.world[ty][tx][1]/div
+                maxTextureX=(self.world[ty][tx][0]+1)/div
+                maxTextureY=(self.world[ty][tx][1]+1)/div
                 y=(i*self.tiley)-(camera.y%self.tiley)
                 x=(j*self.tilex)-(camera.x%self.tilex)
                 gl.glColor3f(1.0, 1.0, 1.0)
-                gl.glTexCoord2f(0.0, 0.0)
+                gl.glTexCoord2f(minTextureY, minTextureX)
                 gl.glVertex2f(x/self.window.winx*camera.scale, (y)/self.window.winy*camera.scale)
-                gl.glTexCoord2f(0.0, 1.0)
+                gl.glTexCoord2f(minTextureY, maxTextureX)
                 gl.glVertex2f((x+self.tilex)/self.window.winx*camera.scale, (y)/self.window.winy*camera.scale)
-                gl.glTexCoord2f(1.0, 1.0)
+                gl.glTexCoord2f(maxTextureY, maxTextureX)
                 gl.glVertex2f((x+self.tilex)/self.window.winx*camera.scale, (y-self.tiley)/self.window.winy*camera.scale)
-                gl.glTexCoord2f(1.0, 0.0)
+                gl.glTexCoord2f(maxTextureY, minTextureX)
                 gl.glVertex2f(x/self.window.winx*camera.scale, (y-self.tiley)/self.window.winy*camera.scale)
-                gl.glEnd()
+        gl.glEnd()
         #render sprites
         while len(sprites) > 0:
             for sprite in sprites:
@@ -211,13 +222,13 @@ class Sprite:
             gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture.getTexture())
             gl.glBegin(gl.GL_QUADS)
             gl.glColor3f(self.color[0], self.color[1], self.color[2])
-            gl.glTexCoord3f(minTextureY, minTextureX, self.y/(self.env.y*self.env.tiley))
+            gl.glTexCoord2f(minTextureY, minTextureX)
             gl.glVertex2f((self.x-camera.x)/self.window.winx*camera.scale, (self.y-camera.y)/self.window.winy*camera.scale)
-            gl.glTexCoord3f(minTextureY, maxTextureX, self.y/(self.env.y*self.env.tiley))
+            gl.glTexCoord2f(minTextureY, maxTextureX)
             gl.glVertex2f((self.x-camera.x+self.xlen)/self.window.winx*camera.scale, (self.y-camera.y)/self.window.winy*camera.scale)
-            gl.glTexCoord3f(maxTextureY, maxTextureX, self.y/(self.env.y*self.env.tiley))
+            gl.glTexCoord2f(maxTextureY, maxTextureX)
             gl.glVertex2f((self.x-camera.x+self.xlen)/self.window.winx*camera.scale, (self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
-            gl.glTexCoord3f(maxTextureY, minTextureX, self.y/(self.env.y*self.env.tiley))
+            gl.glTexCoord2f(maxTextureY, minTextureX)
             gl.glVertex2f((self.x-camera.x)/self.window.winx*camera.scale, (self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
             gl.glEnd()
 
@@ -332,6 +343,8 @@ class Window:
         self.winx=x
         self.winy=y
         self.scroll=0
+        self.font=None
+        self.fontSize=12
         #texture initialization
         gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
         gl.glGenTextures(Texture.MAX, Texture.textures)
@@ -385,6 +398,9 @@ class Window:
         
     def isPressed(self, key):
         return self.keys[key]
+
+    def haltKey(self, key):
+        self.keys[key]=False
     
     def getMousePos(self):
         return self.mouse
@@ -409,9 +425,63 @@ class Window:
         self.winy=y
         glfw.set_window_size(self.window, x, y)
 
+    def getWidth(self):
+        return self.winx
+
+    def getHeight(self):
+        return self.winy
+
     def clear(self):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         gl.glClearColor(0.2, 0.2, 0.2, 1.0)
 
     def vsync(self, vsync):
         glfw.swap_interval(vsync)
+
+    def setFont(self, tex):
+        self.font=tex
+
+    def setFontSize(self, size):
+        self.fontSize=size
+
+    def renderText(self, word, x, y):
+        #get point to start
+        x=((x*self.winx)-self.winx//2)/(self.winx//2)
+        y=-((y*self.winy)-self.winy//2)/(self.winy//2)
+        #stepping per char
+        stepX=self.fontSize/self.winx*2
+        stepY=-self.fontSize/self.winy*2
+        drawn=0
+        #batch rendering with font texture
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.font.getTexture())
+        gl.glBegin(gl.GL_QUADS)
+        for letter in word.upper():
+            index=0
+            #font in order (A-Z then 0-9)
+            if ord(letter) >= ord('A') and ord(letter) <= ord('Z'):
+                index=ord(letter)-ord('A')
+            elif ord(letter) >= ord('0') and ord(letter) <= ord('9'):
+                index=ord(letter)-ord('0')+26
+            else:
+                drawn+=1
+                continue
+            #wrap indexes
+            xIndex=index%self.font.xmax
+            yIndex=int(index/self.font.xmax)
+            #get texture mapping
+            minTextureX=xIndex/self.font.xmax
+            minTextureY=yIndex/self.font.ymax
+            maxTextureX=(xIndex+1)/self.font.xmax
+            maxTextureY=(yIndex+1)/self.font.ymax
+            #draw letter
+            gl.glColor3f(1.0, 1.0, 1.0)
+            gl.glTexCoord2f(minTextureY, minTextureX)
+            gl.glVertex2f(x+(stepX*drawn), y)
+            gl.glTexCoord2f(minTextureY, maxTextureX)
+            gl.glVertex2f(x+stepX+(stepX*drawn), y)
+            gl.glTexCoord2f(maxTextureY, maxTextureX)
+            gl.glVertex2f(x+stepX+(stepX*drawn), y+stepY)
+            gl.glTexCoord2f(maxTextureY, minTextureX)
+            gl.glVertex2f(x+(stepX*drawn), y+stepY)
+            drawn+=1
+        gl.glEnd()
