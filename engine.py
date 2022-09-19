@@ -56,9 +56,11 @@ class Environment:
         cendx=(x+1)*self.subdiv
         cendy=y*self.subdiv
         for i in range(cy, cendy):
-            for j in range(cx, cendx):
-                self.collision[i][j][0]=solid
-                self.collision[i][j][1]=solid
+            self.collision[i][cx][0]=solid
+            self.collision[i][cendx-1][1]=solid
+        for j in range(cx, cendx):
+            self.collision[cy][j][0]=solid
+            self.collision[cendy-1][j][1]=solid
 
     def render(self, camera):
         sprites=[]
@@ -76,8 +78,8 @@ class Environment:
                 cty=ty*self.subdiv
                 ctx=tx*self.subdiv
                 #sprite culling
-                for y in range(0, self.subdiv, 2):
-                    for x in range(0, self.subdiv, 2):
+                for y in range(0, self.subdiv, self.subdiv):
+                    for x in range(0, self.subdiv, 1):
                         sprite=self.collision[cty+y][ctx+x][1]
                         if type(sprite) == Sprite and sprite not in sprites:
                             sprites.append(sprite)
@@ -255,14 +257,34 @@ class Sprite:
         x=int(self.x/self.env.ctilex)
         y2=int((self.y-self.ylen)/self.env.ctiley)
         x2=int((self.x+self.xlen)/self.env.ctilex)
-        for i in range(max(0, y2), min(y+1, self.env.cy)):
-            for j in range(max(0, x), min(x2+1, self.env.cx)):
-                if self.solid:
-                    self.env.collision[i][j][0]=value
-                if value and (self.env.collision[i][j][1] == False or self.env.collision[i][j][1] == self):
-                    self.env.collision[i][j][1]=self
-                elif not value and self.env.collision[i][j][1] == self:
-                    self.env.collision[i][j][1]=False
+        ystart=max(0, y2)
+        yend=min(y+1, self.env.cy)
+        xstart=max(0, x)
+        xend=min(x2+1, self.env.cx)
+        for i in range(ystart, yend):
+            if self.solid:
+                self.env.collision[i][xstart][0]=value
+                self.env.collision[i][xend-1][0]=value
+            if value and (self.env.collision[i][xstart][1] == False or self.env.collision[i][xstart][1] == self):
+                self.env.collision[i][xstart][1]=self
+            if value and (self.env.collision[i][xstart][1] == False or self.env.collision[i][xend-1][1] == self):
+                self.env.collision[i][xend-1][1]=self
+            if not value and self.env.collision[i][xstart][1] == self:
+                self.env.collision[i][xstart][1]=False
+            if not value and self.env.collision[i][xend-1][1] == self:
+                self.env.collision[i][xend-1][1]=False 
+        for j in range(xstart, xend):
+            if self.solid:
+                self.env.collision[ystart][j][0]=value
+                self.env.collision[yend-1][j][0]=value
+            if value and (self.env.collision[ystart][j][1] == False or self.env.collision[ystart][j][1] == self):
+                self.env.collision[ystart][j][1]=self
+            if value and (self.env.collision[yend-1][j][1] == False or self.env.collision[yend-1][j][1] == self):
+                self.env.collision[yend-1][j][1]=self
+            if not value and self.env.collision[ystart][j][1] == self:
+                self.env.collision[ystart][j][1]=False
+            if not value and self.env.collision[yend-1][j][1] == self:
+                self.env.collision[yend-1][j][1]=False
 
     def getCollision(self):
         if self.solid:
@@ -273,10 +295,20 @@ class Sprite:
             x=int(self.x/self.env.ctilex)
             y2=int((self.y-self.ylen)/self.env.ctiley)
             x2=int((self.x+self.xlen)/self.env.ctilex)
-            for i in range(max(0, y2), min(y+1, self.env.cy)):
-                for j in range(max(0, x), min(x2+1, self.env.cx)):
-                    if self.env.collision[i][j][0]:
-                        return self.env.collision[i][j][1]
+            ystart=max(0, y2)
+            yend=min(y+1, self.env.cy)
+            xstart=max(0, x)
+            xend=min(x2+1, self.env.cx)
+            for i in range(ystart, yend):
+                if self.env.collision[i][xstart][0]:
+                    return self.env.collision[i][xstart][1]
+                elif self.env.collision[i][xend-1][0]:
+                    return self.env.collision[i][xend-1][1]
+            for j in range(xstart, xend):
+                if self.env.collision[ystart][j][0]:
+                    return self.env.collision[ystart][j][1]
+                elif self.env.collision[yend-1][j][0]:
+                    return self.env.collision[yend-1][j][1]
         return False
 
     def setTextureCoordX(self, x=0):
