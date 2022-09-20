@@ -54,12 +54,16 @@ class Environment:
         cx=x*self.subdiv
         cy=(y-1)*self.subdiv
         cendx=(x+1)*self.subdiv
-        cendy=y*self.subdiv
+        cendy=y*self.subdiv   
         for i in range(cy, cendy):
             self.collision[i][cx][0]=solid
+            self.collision[i][cx][1]=solid
+            self.collision[i][cendx-1][0]=solid
             self.collision[i][cendx-1][1]=solid
         for j in range(cx, cendx):
             self.collision[cy][j][0]=solid
+            self.collision[cy][j][1]=solid
+            self.collision[cendy-1][j][0]=solid
             self.collision[cendy-1][j][1]=solid
 
     def render(self, camera):
@@ -101,15 +105,9 @@ class Environment:
                 gl.glVertex2f(x/self.window.winx*camera.scale, (y-self.tiley)/self.window.winy*camera.scale)
         gl.glEnd()
         #render sprites
-        while len(sprites) > 0:
-            for sprite in sprites:
-                depth=0
-                for sprite2 in sprites:
-                    if sprite2 != sprite and sprite.y >= sprite2.y:
-                        depth+=1
-                if depth == len(sprites)-1:
-                    sprite.render(camera)
-                    sprites.remove(sprite)
+        for sprite in sprites:
+            sprite.render(camera)
+        sprites=[]
 
 ##### TEXTURE #####
 
@@ -265,9 +263,9 @@ class Sprite:
             if self.solid:
                 self.env.collision[i][xstart][0]=value
                 self.env.collision[i][xend-1][0]=value
-            if value and (self.env.collision[i][xstart][1] == False or self.env.collision[i][xstart][1] == self):
+            if value and (self.env.collision[i][xstart][1] == False):
                 self.env.collision[i][xstart][1]=self
-            if value and (self.env.collision[i][xstart][1] == False or self.env.collision[i][xend-1][1] == self):
+            if value and (self.env.collision[i][xend-1][1] == False):
                 self.env.collision[i][xend-1][1]=self
             if not value and self.env.collision[i][xstart][1] == self:
                 self.env.collision[i][xstart][1]=False
@@ -277,9 +275,9 @@ class Sprite:
             if self.solid:
                 self.env.collision[ystart][j][0]=value
                 self.env.collision[yend-1][j][0]=value
-            if value and (self.env.collision[ystart][j][1] == False or self.env.collision[ystart][j][1] == self):
+            if value and (self.env.collision[ystart][j][1] == False):
                 self.env.collision[ystart][j][1]=self
-            if value and (self.env.collision[yend-1][j][1] == False or self.env.collision[yend-1][j][1] == self):
+            if value and (self.env.collision[yend-1][j][1] == False):
                 self.env.collision[yend-1][j][1]=self
             if not value and self.env.collision[ystart][j][1] == self:
                 self.env.collision[ystart][j][1]=False
