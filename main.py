@@ -1,25 +1,46 @@
 import engine
 
-def spawnEnemy(win, env, tex):
-    enemy=engine.Sprite(win, env, tex, 1, 9, 64, 48, solid=True, half=True)
-    enemy.setTextureCoordX(2)
-    enemy.tint(0.0, 1.0, 1.0)
-    return enemy
+class Enemy:
+    def __init__(self, win, env, tex, x, y):
+        self.startx=x
+        self.starty=y
+        self.enemy=engine.Sprite(win, env, tex, x, y, 64, 48, solid=True, half=True)
+        self.enemy.setTextureCoordX(2)
+        self.enemy.tint(0.0, 1.0, 1.0)
+        self.goRight=True
+        self.walk=engine.Timer() #enemy walk animation timer
+        self.alive=True
+        self.dying=False
 
-def moveAI(ai, player, goRight):
-    #enemy moving
-    c=False
-    if goRight[0]:
-        ai.unflipTexture()
-        c=ai.move(100, 0)
-    else:
-        ai.flipTexture()
-        c=ai.move(-100, 0)
-    if c == player:
-        return False
-    elif c:
-        goRight[0]=not goRight[0]
-    return True
+    def move(self, player):
+        #walk animation
+        if not self.dying:
+            if self.walk.timerCheck(0.3):
+                self.walk.timerStart()
+                self.enemy.enumTextureCoordY(1, 0, 4)
+            #enemy moving
+            if self.goRight:
+                self.enemy.unflipTexture()
+                c=self.enemy.move(100, 0)
+            else:
+                self.enemy.flipTexture()
+                c=self.enemy.move(-100, 0)
+            if c == player:
+                self.enemy.setTextureCoordX(0)
+                self.dying=True
+            elif c:
+                self.goRight=not self.goRight
+        else:
+            self.die()
+            
+    def die(self):
+        if self.walk.timerCheck(0.16):
+            self.walk.timerStart()
+            self.enemy.unflipTexture()
+            self.enemy.setTextureCoordY(5)
+            if self.enemy.enumOnceTextureCoordX(1, 0, 5):
+                self.enemy.remove()
+                self.alive=False
 
 def walk(walk, sprite):
     #walk animation
@@ -27,13 +48,7 @@ def walk(walk, sprite):
         walk.timerStart()
         sprite.enumTextureCoordY(1, 0, 4)
 
-def die(walk, sprite):
-    if walk.timerCheck(0.16):
-        walk.timerStart()
-        sprite.unflipTexture()
-        sprite.setTextureCoordY(5)
-        if sprite.enumOnceTextureCoordX(1, 0, 5):
-            sprite.remove()
+
 
 def controls(win, player):
     #follow mouse
@@ -96,11 +111,15 @@ def main():
     env.place(9,15, 1,0, True)
     #make sprites
     player=engine.Sprite(win, env, t1, 10, 12, 96, 64, solid=True, half=True)
-    enemy=spawnEnemy(win, env, t1)
-    enemyRight=[True] #enemy move right
-    enemyAlive=True
+    enemies=[]
+    enemies.append(Enemy(win, env, t1, 1, 11))
+    enemies.append(Enemy(win, env, t1, 2, 12))
+    enemies.append(Enemy(win, env, t1, 1, 9))
+    enemies.append(Enemy(win, env, t1, 3, 9))
+    enemies.append(Enemy(win, env, t1, 4, 7))
+    enemies.append(Enemy(win, env, t1, 3, 5))
     pwalk=engine.Timer() #walk animation timer
-    ewalk=engine.Timer() #enemy walk animation timer
+    
     #game loop
     helpscreen=True
     showfps=True
@@ -135,10 +154,11 @@ def main():
             return
         #respawn enemy
         elif win.isPressed(ord('B')):
-            if not enemyAlive and not enemy.isVisible():
-                enemy=spawnEnemy(win, env, t1)
-                enemyAlive=True
-                enemyRight=[True]
+            for i in range(len(enemies)):
+                if not enemies[i].alive and not enemies[i].enemy.isVisible():
+                    sx=enemies[i].startx
+                    sy=enemies[i].starty
+                    enemies[i]=Enemy(win, env, t1, sx, sy)
         elif win.isPressed(ord('H')):
             helpscreen=not helpscreen
             win.haltKey(ord('H'))
@@ -147,18 +167,10 @@ def main():
             win.haltKey(ord('F'))
         #animations
         walk(pwalk, player)
-        #enemy death check
-        if enemyAlive:
-            walk(ewalk, enemy)
-            enemyAlive=moveAI(enemy, player, enemyRight)
-            #if died this frame
-            if not enemyAlive:
-                ewalk.timerStart()
-                enemy.unflipTexture()
-                enemy.setTextureCoordX(0)
-                enemy.setTextureCoordY(5)
-        if not enemyAlive and enemy.isVisible():
-            die(ewalk, enemy)
+        #enemy logic
+        for enemy in enemies:
+            if enemy.alive:
+                enemy.move(player)
         #do controls
         controls(win, player)
         #center camera on player
