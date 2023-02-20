@@ -1,7 +1,6 @@
 import glfw
 import OpenGL.GL as gl
 import PIL.Image
-import time
 
 #### HEADERS ####
 
@@ -18,10 +17,10 @@ class Timer:
         self.timer=0
 
     def timerStart(self):
-        self.timer=time.time()
+        self.timer=glfw.get_time()
 
     def timerCheck(self, t: float) -> float:
-        return (time.time()-self.timer >= t)
+        return (glfw.get_time()-self.timer >= t)
 
 ##### ENVIRONMENT #####
 
@@ -391,7 +390,7 @@ class Window:
         self.keys=[False]*512 #keys
         self.mclick=[False]*3 #mouse buttons
         self.fps=0
-        self.start=time.time()
+        self.start=glfw.get_time()
         self.winx=x
         self.winy=y
         self.scroll=0
@@ -407,10 +406,10 @@ class Window:
     def windowLoop(self) -> bool:
         self.scroll=0
         if not glfw.window_should_close(self.window):
-            ctime=time.time()
+            ctime=glfw.get_time()
             dtime=ctime-self.start
             self.start=ctime
-            self.fps=0.5/dtime
+            self.fps=1/dtime
             glfw.swap_buffers(self.window)
             glfw.poll_events()
             return True
