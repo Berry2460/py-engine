@@ -88,10 +88,12 @@ class Environment:
                         if type(sprite) == Sprite and sprite not in sprites:
                             sprites.append(sprite)
                 #render tiles
-                minTextureX=self.world[ty][tx][0]/self.tileset.xmax
-                minTextureY=self.world[ty][tx][1]/self.tileset.ymax
-                maxTextureX=(self.world[ty][tx][0]+1)/self.tileset.xmax
-                maxTextureY=(self.world[ty][tx][1]+1)/self.tileset.ymax
+                txmul=self.tileset.imgX/self.tileset.size
+                tymul=self.tileset.imgY/self.tileset.size
+                minTextureX=self.world[ty][tx][0]/self.tileset.xmax * txmul
+                minTextureY=self.world[ty][tx][1]/self.tileset.ymax * tymul
+                maxTextureX=(self.world[ty][tx][0]+1)/self.tileset.xmax * txmul
+                maxTextureY=(self.world[ty][tx][1]+1)/self.tileset.ymax * tymul
                 y=(i*self.tiley)-(camera.y%self.tiley)
                 x=(j*self.tilex)-(camera.x%self.tilex)
                 gl.glColor3f(1.0, 1.0, 1.0)
@@ -122,18 +124,26 @@ class Texture:
         self.ymax=y
         self.imgX=1
         self.imgY=1
+        self.size=1
         if Texture.texCount < Texture.MAX:
             img=PIL.Image.open(path).convert('RGBA')
             self.imgX, self.imgY=img.size
+            self.size=max(self.imgX, self.imgY)
             data=img.load()
-            pixels=[0]*self.imgX*self.imgY*4
+            pixels=[0]*self.size*self.size*4
             index=0
-            for i in range(self.imgX):
-                for j in range(self.imgY):
-                    pixels[index]=data[i,j][0]
-                    pixels[index+1]=data[i,j][1]
-                    pixels[index+2]=data[i,j][2]
-                    pixels[index+3]=data[i,j][3]
+            for i in range(self.size):
+                for j in range(self.size):
+                    if (i < self.imgX and j < self.imgY):
+                        pixels[index]=data[i,j][0]
+                        pixels[index+1]=data[i,j][1]
+                        pixels[index+2]=data[i,j][2]
+                        pixels[index+3]=data[i,j][3]
+                    else:
+                        pixels[index]=0
+                        pixels[index+1]=0
+                        pixels[index+2]=0
+                        pixels[index+3]=0
                     index+=4
             gl.glBindTexture(gl.GL_TEXTURE_2D, Texture.texCount);
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
@@ -141,7 +151,7 @@ class Texture:
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
             gl.glTexEnvf(gl.GL_TEXTURE_ENV, gl.GL_TEXTURE_ENV_MODE, gl.GL_MODULATE)
-            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.imgX, self.imgY, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
+            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.size, self.size, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
             Texture.texCount+=1
 
     def getTexture(self):
@@ -210,10 +220,12 @@ class Sprite:
 
     def render(self, camera):
         if self.visible:
-            minTextureX=self.tx/self.texture.xmax
-            minTextureY=self.ty/self.texture.ymax
-            maxTextureX=(self.tx+1)/self.texture.xmax
-            maxTextureY=(self.ty+1)/self.texture.ymax
+            txmul=self.texture.imgX/self.texture.size
+            tymul=self.texture.imgY/self.texture.size
+            minTextureX=self.tx/self.texture.xmax * txmul
+            minTextureY=self.ty/self.texture.ymax * tymul
+            maxTextureX=(self.tx+1)/self.texture.xmax * txmul
+            maxTextureY=(self.ty+1)/self.texture.ymax * tymul
             if self.flip:
                 temp=minTextureX
                 minTextureX=maxTextureX
@@ -367,7 +379,6 @@ class Window:
         self.keys=[False]*512 #keys
         self.mclick=[False]*3 #mouse buttons
         self.fps=0
-        self.frames=60 #start above 0 to prevent miscalculations due to inaccuracy
         self.start=time.time()
         self.winx=x
         self.winy=y
@@ -384,12 +395,10 @@ class Window:
     def windowLoop(self):
         self.scroll=0
         if not glfw.window_should_close(self.window):
-            self.frames+=1
-            if time.time()-self.start > 0:
-                self.fps=self.frames/(time.time()-self.start)
-            if time.time()-self.start >= 1:
-                self.start=time.time()
-                self.frames=0
+            ctime=time.time()
+            dtime=ctime-self.start
+            self.start=ctime
+            self.fps=0.5/dtime
             glfw.swap_buffers(self.window)
             glfw.poll_events()
             return True
