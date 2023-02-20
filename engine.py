@@ -3,6 +3,14 @@ import OpenGL.GL as gl
 import PIL.Image
 import time
 
+#### HEADERS ####
+
+class Window: pass
+class Environment: pass
+class Camera: pass
+class Texture: pass
+class Sprite: pass
+
 ##### TIMER #####
 
 class Timer:
@@ -12,13 +20,13 @@ class Timer:
     def timerStart(self):
         self.timer=time.time()
 
-    def timerCheck(self, t):
+    def timerCheck(self, t: float) -> float:
         return (time.time()-self.timer >= t)
 
 ##### ENVIRONMENT #####
 
 class Environment:
-    def __init__(self, window, tileset, x=128, y=128, tilex=64, tiley=64, subdiv=4):
+    def __init__(self, window: Window, tileset: Texture, x=128, y=128, tilex=64, tiley=64, subdiv=4):
         while tilex%subdiv != 0 or tiley%subdiv != 0:
             subdiv+=1 #subdiv must divide evenly into tile size to prevent collision errors
         self.subdiv=subdiv
@@ -42,10 +50,10 @@ class Environment:
         #collision init
         for i in range(self.cy):
             for j in range(self.cx):
-                self.collision[i].append([False, False]) #is occupied, sprite
+                self.collision[i].append([False, None]) #is occupied, sprite
             self.collision.append([])
 
-    def place(self, x, y, tilesetX, tilesetY, solid=False):
+    def place(self, x: int, y: int, tilesetX: int, tilesetY: int, solid=False):
         #make sure coordinates are in range
         tilesetX=max(min(self.tileset.xmax-1, tilesetX), 0)
         tilesetY=max(min(self.tileset.ymax-1, tilesetY), 0)
@@ -66,7 +74,7 @@ class Environment:
             self.collision[cendy-1][j][0]=solid
             self.collision[cendy-1][j][1]=solid
 
-    def render(self, camera):
+    def render(self, camera: Camera):
         sprites=[]
         xmin=-int((self.window.winx/self.tilex)/camera.scale)-2
         xmax=int((self.window.winx/self.tilex)/camera.scale)+2
@@ -118,7 +126,7 @@ class Texture:
     texCount=0
     textures=[0]*MAX
 
-    def __init__(self, path, x=1, y=1):
+    def __init__(self, path: str, x=1, y=1):
         self.data=Texture.texCount
         self.xmax=x
         self.ymax=y
@@ -129,16 +137,16 @@ class Texture:
             img=PIL.Image.open(path).convert('RGBA')
             self.imgX, self.imgY=img.size
             self.size=max(self.imgX, self.imgY)
-            data=img.load()
+            pixeldata=img.load()
             pixels=[0]*self.size*self.size*4
             index=0
             for i in range(self.size):
                 for j in range(self.size):
                     if (i < self.imgX and j < self.imgY):
-                        pixels[index]=data[i,j][0]
-                        pixels[index+1]=data[i,j][1]
-                        pixels[index+2]=data[i,j][2]
-                        pixels[index+3]=data[i,j][3]
+                        pixels[index]=pixeldata[i,j][0]
+                        pixels[index+1]=pixeldata[i,j][1]
+                        pixels[index+2]=pixeldata[i,j][2]
+                        pixels[index+3]=pixeldata[i,j][3]
                     else:
                         pixels[index]=0
                         pixels[index+1]=0
@@ -154,36 +162,36 @@ class Texture:
             gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.size, self.size, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
             Texture.texCount+=1
 
-    def getTexture(self):
+    def getTexture(self) -> int:
         return self.data
 
-    def getSizeX(self):
+    def getSizeX(self) -> int:
         return self.imgX
 
-    def getSizeY(self):
+    def getSizeY(self) -> int:
         return self.imgY
 
 ##### CAMERA #####
 
 class Camera:
-    def __init__(self, window, x=0, y=0, scale=1.0):
+    def __init__(self, window: Window, x=0, y=0, scale=1.0):
         self.x=x
         self.y=y
         self.scale=scale
         self.window=window
 
-    def move(self, x, y):
+    def move(self, x: float, y: float):
         self.x+=x/self.window.getFps()
         self.y+=y/self.window.getFps()
 
-    def center(self, sprite):
+    def center(self, sprite: Sprite):
         self.x=sprite.x+(sprite.xlen/2)
         self.y=sprite.y-(sprite.ylen/2)
 
 ##### SPRITE #####
 
 class Sprite:
-    def __init__(self, window, env, texture, x=0, y=0, xlen=32, ylen=32, solid=True, half=False):
+    def __init__(self, window: Window, env: Environment, texture: Texture, x=0, y=0, xlen=32, ylen=32, solid=True, half=False):
         self.half=half
         self.x=x*env.tilex
         self.y=y*env.tiley
@@ -197,10 +205,11 @@ class Sprite:
         self.env=env
         self.solid=solid
         self.visible=True
-        self.setCollision(True)
+        self._setCollision(True)
         self.flip=False
+        self.collided=None
 
-    def tint(self, r, g, b):
+    def tint(self, r: float, g: float, b: float):
         self.color[0]=r
         self.color[1]=g
         self.color[2]=b
@@ -213,12 +222,12 @@ class Sprite:
 
     def remove(self):
         self.visible=False
-        self.setCollision(False)
+        self._setCollision(False)
 
-    def isVisible(self):
+    def isVisible(self) -> bool:
         return self.visible
 
-    def render(self, camera):
+    def render(self, camera: Camera):
         if self.visible:
             txmul=self.texture.imgX/self.texture.size
             tymul=self.texture.imgY/self.texture.size
@@ -243,23 +252,23 @@ class Sprite:
             gl.glVertex2f((self.x-camera.x)/self.window.winx*camera.scale, (self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
             gl.glEnd()
 
-    def move(self, x, y):
+    def move(self, x: float, y: float) -> bool:
+        collide=False
         oldx=self.x
         oldy=self.y
-        self.setCollision(False)
+        self._setCollision(False)
         self.x+=x/self.window.getFps()
         self.y+=y/self.window.getFps()
-        hit=self.getCollision()
+        self.collided=self._getCollision()
         #collision detection
-        if hit or self.x < 0 or self.y < self.ylen/2 or self.x > self.env.x*self.env.tilex-self.xlen/2 or self.y > self.env.y*self.env.tiley:
+        if self.collided or self.x < 0 or self.y < self.ylen/2 or self.x > self.env.x*self.env.tilex-self.xlen/2 or self.y > self.env.y*self.env.tiley:
             self.x=oldx
             self.y=oldy
-            if not hit:
-                hit=True
-        self.setCollision(True)
-        return hit
+            collide=True
+        self._setCollision(True)
+        return collide
 
-    def setCollision(self, value):
+    def _setCollision(self, value):
         off=0
         if self.half:
             off=int(self.ylen/2)
@@ -275,28 +284,28 @@ class Sprite:
             if self.solid:
                 self.env.collision[i][xstart][0]=value
                 self.env.collision[i][xend-1][0]=value
-            if value and (self.env.collision[i][xstart][1] == False):
+            if value and (self.env.collision[i][xstart][1] == None):
                 self.env.collision[i][xstart][1]=self
-            if value and (self.env.collision[i][xend-1][1] == False):
+            if value and (self.env.collision[i][xend-1][1] == None):
                 self.env.collision[i][xend-1][1]=self
             if not value and self.env.collision[i][xstart][1] == self:
-                self.env.collision[i][xstart][1]=False
+                self.env.collision[i][xstart][1]=None
             if not value and self.env.collision[i][xend-1][1] == self:
-                self.env.collision[i][xend-1][1]=False 
+                self.env.collision[i][xend-1][1]=None 
         for j in range(xstart, xend):
             if self.solid:
                 self.env.collision[ystart][j][0]=value
                 self.env.collision[yend-1][j][0]=value
-            if value and (self.env.collision[ystart][j][1] == False):
+            if value and (self.env.collision[ystart][j][1] == None):
                 self.env.collision[ystart][j][1]=self
-            if value and (self.env.collision[yend-1][j][1] == False):
+            if value and (self.env.collision[yend-1][j][1] == None):
                 self.env.collision[yend-1][j][1]=self
             if not value and self.env.collision[ystart][j][1] == self:
-                self.env.collision[ystart][j][1]=False
+                self.env.collision[ystart][j][1]=None
             if not value and self.env.collision[yend-1][j][1] == self:
-                self.env.collision[yend-1][j][1]=False
+                self.env.collision[yend-1][j][1]=None
 
-    def getCollision(self):
+    def _getCollision(self):
         if self.solid:
             off=0
             if self.half:
@@ -319,7 +328,10 @@ class Sprite:
                     return self.env.collision[ystart][j][1]
                 elif self.env.collision[yend-1][j][0]:
                     return self.env.collision[yend-1][j][1]
-        return False
+        return None
+
+    def checkCollision(self) -> Sprite:
+        return self.collided
 
     def setTextureCoordX(self, x=0):
         self.tx=x
@@ -392,7 +404,7 @@ class Window:
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
-    def windowLoop(self):
+    def windowLoop(self) -> bool:
         self.scroll=0
         if not glfw.window_should_close(self.window):
             ctime=time.time()
@@ -431,58 +443,58 @@ class Window:
     def close(self):
         glfw.destroy_window(self.window)
 
-    def scrollWheel(self):
+    def scrollWheel(self) -> int:
         return self.scroll
         
-    def isPressed(self, key):
+    def isPressed(self, key: int) -> bool:
         return self.keys[key]
 
-    def haltKey(self, key):
+    def haltKey(self, key: int):
         self.keys[key]=False
     
-    def getMousePos(self):
+    def getMousePos(self) -> [int, int]:
         return self.mouse
     
-    def leftMouseButton(self):
+    def leftMouseButton(self) -> bool:
         return self.mclick[0]
     
-    def rightMouseButton(self):
+    def rightMouseButton(self) -> bool:
         return self.mclick[1]
     
-    def middleMouseButton(self):
+    def middleMouseButton(self) -> bool:
         return self.mclick[2]
     
-    def getFps(self):
+    def getFps(self) -> float:
         return self.fps
 
-    def setTitle(self, title):
+    def setTitle(self, title: str):
         glfw.set_window_title(self.window, title)
 
-    def resize(self, x, y):
+    def resize(self, x: int, y: int):
         self.winx=x
         self.winy=y
         glfw.set_window_size(self.window, x, y)
 
-    def getWidth(self):
+    def getWidth(self) -> int:
         return self.winx
 
-    def getHeight(self):
+    def getHeight(self) -> int:
         return self.winy
 
     def clear(self):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         gl.glClearColor(0.2, 0.2, 0.2, 1.0)
 
-    def vsync(self, vsync):
+    def vsync(self, vsync: bool):
         glfw.swap_interval(vsync)
 
-    def setFont(self, tex):
+    def setFont(self, tex: Texture):
         self.font=tex
 
-    def setFontSize(self, size):
+    def setFontSize(self, size: int):
         self.fontSize=size
 
-    def renderText(self, word, x, y):
+    def renderText(self, word: str, x: float, y: float):
         #get point to start
         x=((x*self.winx)-self.winx//2)/(self.winx//2)
         y=-((y*self.winy)-self.winy//2)/(self.winy//2)

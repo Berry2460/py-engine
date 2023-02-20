@@ -14,6 +14,7 @@ class Enemy:
 
     def move(self, player):
         #walk animation
+        c=False
         if not self.dying:
             if self.walk.timerCheck(0.3):
                 self.walk.timerStart()
@@ -25,11 +26,12 @@ class Enemy:
             else:
                 self.enemy.flipTexture()
                 c=self.enemy.move(-100, 0)
-            if c == player:
-                self.enemy.setTextureCoordX(0)
-                self.dying=True
-            elif c:
-                self.goRight=not self.goRight
+            if c:
+                if self.enemy.checkCollision() == player:
+                    self.enemy.setTextureCoordX(0)
+                    self.dying=True
+                else:
+                    self.goRight=not self.goRight
         else:
             self.die()
             
@@ -96,7 +98,7 @@ def main():
     win=engine.Window(x, y, 'engine', vsync=0, fullscreen=False)
     #load textures
     t1=engine.Texture('textures/dragon.png',5,6)
-    t2=engine.Texture('textures/tileset.png',2,2)
+    t2=engine.Texture('textures/tileset.png',2,1)
     t3=engine.Texture('textures/font.png',6,6)
     #set font
     win.setFont(t3)
