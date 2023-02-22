@@ -4,7 +4,7 @@ class Enemy:
     def __init__(self, win, env, tex, x, y):
         self.startx=x
         self.starty=y
-        self.enemy=engine.Sprite(win, env, tex, x, y, 64, 48, solid=True, half=True)
+        self.enemy=engine.Sprite(win, env, tex, x, y, 128, 96, solid=True, half=True)
         self.enemy.setTextureCoordX(2)
         self.enemy.tint(0.0, 1.0, 1.0)
         self.goRight=True
@@ -22,10 +22,10 @@ class Enemy:
             #enemy moving
             if self.goRight:
                 self.enemy.unflipTexture()
-                c=self.enemy.move(100, 0)
+                c=self.enemy.move(180, 0)
             else:
                 self.enemy.flipTexture()
-                c=self.enemy.move(-100, 0)
+                c=self.enemy.move(-180, 0)
             if c:
                 if self.enemy.checkCollision() == player:
                     self.enemy.setTextureCoordX(0)
@@ -50,8 +50,6 @@ def walk(walk, sprite):
         walk.timerStart()
         sprite.enumTextureCoordY(1, 0, 4)
 
-
-
 def controls(win, player):
     #follow mouse
     if win.leftMouseButton():
@@ -62,12 +60,12 @@ def controls(win, player):
             up=1
             player.unflipTexture()
             player.setTextureCoordX(0)
-            collide=player.move(0, 180)
+            collide=player.move(0, 320)
         elif win.winy/2-(player.ylen/2) > win.getMousePos()[1]:
             up=-1
             player.unflipTexture()
             player.setTextureCoordX(4)
-            collide=player.move(0, -180)
+            collide=player.move(0, -320)
         if win.winx/2+(player.xlen/2) < win.getMousePos()[0]:
             player.unflipTexture()
             if up == 0:
@@ -76,7 +74,7 @@ def controls(win, player):
                 player.setTextureCoordX(1)
             elif up == -1:
                 player.setTextureCoordX(3)
-            collide=player.move(180, 0)
+            collide=player.move(320, 0)
         elif win.winx/2-(player.xlen/2) > win.getMousePos()[0]:
             player.flipTexture()
             if up == 0:
@@ -85,7 +83,7 @@ def controls(win, player):
                 player.setTextureCoordX(1)
             elif up == -1:
                 player.setTextureCoordX(3)
-            collide=player.move(-180, 0)
+            collide=player.move(-320, 0)
         if collide:
             #collision stuff here
             pass
@@ -104,15 +102,15 @@ def main():
     win.setFont(t3)
     #setup camera and map
     cam=engine.Camera(win,0,0,2.0)
-    cam.scale=(y/480)*2.5
-    env=engine.Environment(win, t2, 24,24, 32,32, 4) #total size, floor size, collision subdiv amount
+    cam.scale=1
+    env=engine.Environment(win, t2, 0,0, 24,24, 64,64, 4) #texture coords, total size, floor size, collision subdiv amount
     #add floors
     env.place(8,7, 1,0, True) #map x,y tileset x,y
     env.place(9,7, 1,0, True)
     env.place(16,10, 1,0, True)
     env.place(9,15, 1,0, True)
     #make sprites
-    player=engine.Sprite(win, env, t1, 10, 12, 96, 64, solid=True, half=True)
+    player=engine.Sprite(win, env, t1, 10, 12, 192, 128, solid=True, half=True)
     enemies=[]
     enemies.append(Enemy(win, env, t1, 1, 11))
     enemies.append(Enemy(win, env, t1, 2, 12))
@@ -145,11 +143,11 @@ def main():
             win.renderText('use left click to move', 0.22,0.80)
         #scroll zoom
         if win.scrollWheel() == 1:
-            cam.scale+=0.1
+            cam.scale+=0.05
         elif win.scrollWheel() == -1:
-            cam.scale-=0.1
-        if cam.scale < (y/480)*2:
-            cam.scale=(y/480)*2
+            cam.scale-=0.05
+        if cam.scale < y/1000:
+            cam.scale=y/1000
         #exit
         if win.isPressed(ord('A')):
             win.close()

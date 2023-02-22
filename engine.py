@@ -25,7 +25,7 @@ class Timer:
 ##### ENVIRONMENT #####
 
 class Environment:
-    def __init__(self, window: Window, tileset: Texture, x=128, y=128, tilex=64, tiley=64, subdiv=4):
+    def __init__(self, window: Window, tileset: Texture, tx=0, ty=0, x=128, y=128, tilex=64, tiley=64, subdiv=4):
         while tilex%subdiv != 0 or tiley%subdiv != 0:
             subdiv+=1 #subdiv must divide evenly into tile size to prevent collision errors
         self.subdiv=subdiv
@@ -44,7 +44,7 @@ class Environment:
         #world init
         for i in range(self.y):
             for j in range(self.x):
-                self.world[i].append([0,0]) #texture X,Y coords init
+                self.world[i].append([tx,ty]) #texture X,Y coords init
             self.world.append([])
         #collision init
         for i in range(self.cy):
@@ -75,10 +75,10 @@ class Environment:
 
     def render(self, camera: Camera):
         sprites=[]
-        xmin=-int((self.window.winx/self.tilex)/camera.scale)-2
-        xmax=int((self.window.winx/self.tilex)/camera.scale)+2
-        ymin=-int((self.window.winy/self.tiley)/camera.scale)-1
-        ymax=int((self.window.winy/self.tiley)/camera.scale)+3
+        xmin=(-int((self.window.winx/self.tilex)/camera.scale)>>1)-2
+        xmax=(int((self.window.winx/self.tilex)/camera.scale)>>1)+2
+        ymin=(-int((self.window.winy/self.tiley)/camera.scale)>>1)-1
+        ymax=(int((self.window.winy/self.tiley)/camera.scale)>>1)+3
         #batch rendering tileset
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.tileset.getTexture())
         gl.glBegin(gl.GL_QUADS)
@@ -105,13 +105,13 @@ class Environment:
                 x=(j*self.tilex)-(camera.x%self.tilex)
                 gl.glColor3f(1.0, 1.0, 1.0)
                 gl.glTexCoord2f(minTextureY, minTextureX)
-                gl.glVertex2f(x/self.window.winx*camera.scale, (y)/self.window.winy*camera.scale)
+                gl.glVertex2f(2*x/self.window.winx*camera.scale, 2*y/self.window.winy*camera.scale)
                 gl.glTexCoord2f(minTextureY, maxTextureX)
-                gl.glVertex2f((x+self.tilex)/self.window.winx*camera.scale, (y)/self.window.winy*camera.scale)
+                gl.glVertex2f(2*(x+self.tilex)/self.window.winx*camera.scale, 2*y/self.window.winy*camera.scale)
                 gl.glTexCoord2f(maxTextureY, maxTextureX)
-                gl.glVertex2f((x+self.tilex)/self.window.winx*camera.scale, (y-self.tiley)/self.window.winy*camera.scale)
+                gl.glVertex2f(2*(x+self.tilex)/self.window.winx*camera.scale, 2*(y-self.tiley)/self.window.winy*camera.scale)
                 gl.glTexCoord2f(maxTextureY, minTextureX)
-                gl.glVertex2f(x/self.window.winx*camera.scale, (y-self.tiley)/self.window.winy*camera.scale)
+                gl.glVertex2f(2*x/self.window.winx*camera.scale, 2*(y-self.tiley)/self.window.winy*camera.scale)
         gl.glEnd()
         #render sprites
         for sprite in sprites:
@@ -242,13 +242,13 @@ class Sprite:
             gl.glBegin(gl.GL_QUADS)
             gl.glColor3f(self.color[0], self.color[1], self.color[2])
             gl.glTexCoord2f(minTextureY, minTextureX)
-            gl.glVertex2f((self.x-camera.x)/self.window.winx*camera.scale, (self.y-camera.y)/self.window.winy*camera.scale)
+            gl.glVertex2f(2*(self.x-camera.x)/self.window.winx*camera.scale, 2*(self.y-camera.y)/self.window.winy*camera.scale)
             gl.glTexCoord2f(minTextureY, maxTextureX)
-            gl.glVertex2f((self.x-camera.x+self.xlen)/self.window.winx*camera.scale, (self.y-camera.y)/self.window.winy*camera.scale)
+            gl.glVertex2f(2*(self.x-camera.x+self.xlen)/self.window.winx*camera.scale, 2*(self.y-camera.y)/self.window.winy*camera.scale)
             gl.glTexCoord2f(maxTextureY, maxTextureX)
-            gl.glVertex2f((self.x-camera.x+self.xlen)/self.window.winx*camera.scale, (self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
+            gl.glVertex2f(2*(self.x-camera.x+self.xlen)/self.window.winx*camera.scale, 2*(self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
             gl.glTexCoord2f(maxTextureY, minTextureX)
-            gl.glVertex2f((self.x-camera.x)/self.window.winx*camera.scale, (self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
+            gl.glVertex2f(2*(self.x-camera.x)/self.window.winx*camera.scale, 2*(self.y-camera.y-self.ylen)/self.window.winy*camera.scale)
             gl.glEnd()
 
     def move(self, x: float, y: float) -> bool:
