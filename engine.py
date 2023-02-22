@@ -19,7 +19,7 @@ class Timer:
     def timerStart(self):
         self.timer=glfw.get_time()
 
-    def timerCheck(self, t: float) -> float:
+    def timerCheck(self, t: float) -> bool:
         return (glfw.get_time()-self.timer >= t)
 
 ##### ENVIRONMENT #####
