@@ -389,7 +389,7 @@ class Window:
         self.mouse=[0,0] #mouse position
         self.keys=[False]*512 #keys
         self.mclick=[False]*3 #mouse buttons
-        self.fps=0
+        self.fps=1
         self.start=glfw.get_time()
         self.winx=x
         self.winy=y
