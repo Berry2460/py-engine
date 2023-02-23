@@ -9,6 +9,7 @@ class Environment: pass
 class Camera: pass
 class Texture: pass
 class Sprite: pass
+class Timer: pass
 
 ##### TIMER #####
 
